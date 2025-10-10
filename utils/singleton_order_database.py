@@ -69,7 +69,7 @@ class OrderDatabase:
                 self._create_cursor()
 
                 # 创建订单表（如果不存在）
-                self._create_order_table()
+                #self._create_order_table()
                 return True
 
         except Error as e:
@@ -98,16 +98,26 @@ class OrderDatabase:
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 order_type ENUM('buy', 'sell') NOT NULL,
                 price DECIMAL(10, 4) NOT NULL,
+                quantity DECIMAL(10, 4) NOT NULL DEFAULT 1.0,
                 status ENUM('pending', 'filled', 'timeout') NOT NULL,
                 placed_time DATETIME NOT NULL,
                 filled_time DATETIME NULL,
                 profit DECIMAL(10, 4) NULL,
                 related_order_id INT NULL,
+                confirm TINYINT(1) DEFAULT 0,
                 FOREIGN KEY (related_order_id) REFERENCES orders(id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """
+            
+            # 检查并添加confirm和quantity字段（如果表已存在但没有该字段）
+            alter_table_queries = [
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirm TINYINT(1) DEFAULT 0",
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity DECIMAL(10, 4) NOT NULL DEFAULT 1.0"
+            ]
 
             self.cursor.execute(create_table_query)
+            for alter_query in alter_table_queries:
+                self.cursor.execute(alter_query)
             self.connection.commit()
             print("订单表检查/创建成功")
 
@@ -116,8 +126,42 @@ class OrderDatabase:
             if self.connection:
                 self.connection.rollback()
 
-    def insert_order(self, order_type, price, status='pending', placed_time=None,
-                     filled_time=None, profit=None, related_order_id=None):
+    def get_pending_orders(self):
+        """获取未完成的订单 (status='pending' 或 status='filled' and confirm=0)"""
+        # 检查连接状态并尝试重连
+        if not (self.connection and self.connection.is_connected()):
+            print("数据库连接已断开，尝试重新连接...")
+            if not self.connect():
+                return []
+
+        # 确保游标存在
+        if not self.cursor:
+            self._create_cursor()
+            if not self.cursor:
+                return []
+
+        try:
+            query = """
+            SELECT * FROM orders 
+            WHERE status = 'pending' 
+               OR (status = 'filled' AND confirm = 0)
+            ORDER BY placed_time ASC
+            """
+            
+            self.cursor.execute(query)
+            orders = self.cursor.fetchall()
+            
+            print(f"找到 {len(orders)} 个未完成的订单")
+            return orders
+
+        except Error as e:
+            print(f"查询未完成订单时发生错误: {e}")
+            return []
+    
+
+
+    def insert_order(self, order_type, price, quantity=1.0, status='pending', placed_time=None,
+                     filled_time=None, profit=None, related_order_id=None, confirm=0):
         """插入新订单记录"""
         # 检查连接状态并尝试重连
         if not (self.connection and self.connection.is_connected()):
@@ -137,18 +181,20 @@ class OrderDatabase:
 
             insert_query = """
             INSERT INTO orders 
-            (order_type, price, status, placed_time, filled_time, profit, related_order_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            (order_type, price, quantity, status, placed_time, filled_time, profit, related_order_id, confirm)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             values = (
                 order_type,
                 price,
+                quantity,
                 status,
                 placed_time,
                 filled_time,
                 profit,
-                related_order_id
+                related_order_id,
+                confirm
             )
 
             self.cursor.execute(insert_query, values)
@@ -216,6 +262,52 @@ class OrderDatabase:
             if self.connection:
                 self.connection.rollback()
             return False
+
+
+    def update_order_confirm(self, order_id, filled_time=None, profit=None):
+        """更新订单状态"""
+        # 检查连接状态并尝试重连
+        if not (self.connection and self.connection.is_connected()):
+            print("数据库连接已断开，尝试重新连接...")
+            if not self.connect():
+                return False
+
+        # 确保游标存在
+        if not self.cursor:
+            self._create_cursor()
+            if not self.cursor:
+                return False
+
+        try:
+
+            update_query = f"""
+         UPDATE orders 
+SET confirm = 1 
+WHERE id IN (
+    SELECT related_order_id FROM (
+        SELECT related_order_id FROM orders WHERE id = %s
+    ) AS temp
+) or id = %s;
+                
+            """
+
+            self.cursor.execute(update_query, [order_id,order_id])
+            self.connection.commit()
+
+            if self.cursor.rowcount > 0:
+                print(f"订单ID {order_id} 已更新confirm")
+                return True
+            else:
+                print(f"未找到订单ID {order_id} 或无需更新")
+                return False
+
+        except Error as e:
+            print(f"更新订单状态时发生错误: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return False
+
+
 
     def get_order(self, order_id):
         """获取指定ID的订单信息"""
