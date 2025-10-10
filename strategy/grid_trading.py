@@ -66,7 +66,8 @@ class GridTrading:
             
             if not pending_orders:
                 print("没有找到未完成的订单")
-                return
+                self.has_orders = []
+                return []
             
             print(f"加载到 {len(pending_orders)} 个未完成的订单:")
             
@@ -178,6 +179,32 @@ class GridTrading:
         
         return target_price
 
+    def place_sell_order_related(self, buy_price,last_buy_order_id):
+        """下卖单，基于买入价格设置目标利润"""
+        target_price = buy_price * (1 + self.profit_target)
+        self.last_order_time = datetime.now()
+        self.last_order_type = 'sell'
+        self.order_price = target_price
+
+        # 将卖单保存到数据库，关联到最后一个买单
+        self.current_order_id = self.db.insert_order(
+            order_type='sell',
+            price=target_price,
+            quantity=self.quantity,
+            status='pending',
+            placed_time=self.last_order_time,
+            related_order_id=last_buy_order_id
+        )
+
+        if self.current_order_id:
+            print(
+                f"[{datetime.now().strftime('%H:%M:%S')}] 下卖单，目标价格: {target_price:.4f} (目标收益: {self.profit_target * 100:.2f}%)，订单ID: {self.current_order_id}")
+        else:
+            print(
+                f"[{datetime.now().strftime('%H:%M:%S')}] 下卖单，目标价格: {target_price:.4f} (目标收益: {self.profit_target * 100:.2f}%)，数据库保存失败")
+
+        return target_price
+
     def check_order_status(self):
         """检查订单状态，模拟订单是否成交"""
         current_price = self.get_current_price()
@@ -247,6 +274,10 @@ class GridTrading:
         """检查订单状态，模拟订单是否成交"""
         current_price = self.get_current_price()
         current_time = datetime.now()
+        timeout = self.buy_timeout
+
+        if order['status'] != 'pending':
+            return order['status']
 
         # 检查是否超时
         if order['last_order_type'] == 'buy':
@@ -311,7 +342,9 @@ class GridTrading:
 
     def get_sell_order_by_id(self, order_id):
         for ord in self.has_orders:
-            if ord['order_type'] == 'sell' and ord['related_order_id'] == order_id and ord['status']=='pending':
+            print(f"get_sell_order_by_id order_id={order_id}")
+            if ord['related_order_id'] == order_id :
+                print(ord)
                 return ord
 
         return None
@@ -346,20 +379,22 @@ class GridTrading:
 
                 #找出最后的订单时间
                 last_sell_ord = None
-                for ord in self.has_orders:
-                    print( ord )
 
-                    #如果订单是买单，需要下卖单
-                    ord_status = self.check_order_status_by_api(
-                        {'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
-                         'last_order_time': ord['placed_time']})
+                if self.has_orders:
+                    for ord in self.has_orders:
+                        print( ord )
 
-                    print(f"ord_status={ord_status}")
-                    if ord['status'] == 'filled' and ord['order_type'] == 'buy':
-                        # 判断是否有卖单
-                        if self.get_sell_order_by_id(ord['id']) is None:
-                            # 买单成交，下卖单
-                            self.place_sell_order(ord['price'])
+                        #如果订单是买单，需要下卖单
+                        ord_status = self.check_order_status_by_api(
+                            {'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
+                             'last_order_time': ord['placed_time'],'status':ord['status']})
+
+                        print(f"ord_status={ord_status}")
+                        if ord['status'] == 'filled' and ord['order_type'] == 'buy':
+                            # 判断是否有卖单
+                            if self.get_sell_order_by_id(ord['id']) is None:
+                                # 买单成交，下卖单
+                                self.place_sell_order_related(float(ord['price']), ord['id'])
 
                     #
                     #
@@ -380,17 +415,20 @@ class GridTrading:
 
 
 
-                    if ord['status'] == 'filled':
-                        if last_sell_ord is not None:
-                            if last_sell_ord['filled_time']<ord['filled_time']:
+                        if ord['status'] == 'filled':
+                            if last_sell_ord is not None:
+                                if last_sell_ord['filled_time']<ord['filled_time']:
+                                    last_sell_ord = ord
+                            else:
                                 last_sell_ord = ord
-                        else:
-                            last_sell_ord = ord
 
                 if last_sell_ord is not None and (datetime.now() -last_sell_ord['filled_time'] ).total_seconds()>60:
                     print( f"last_sell_ord = {last_sell_ord}")
 
                 #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
+                if self.has_orders is not None and len(self.has_orders) == 0:
+                    self.place_buy_order()
+
 
                 self.load_pending_orders()
 
