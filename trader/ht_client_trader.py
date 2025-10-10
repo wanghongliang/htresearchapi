@@ -7,14 +7,12 @@ import re
 import sys
 import time
 from typing import Dict, List, Optional
-import pandas as pd
 import traceback
 from pywinauto import findwindows, timings, Application
 from pywinauto.keyboard import send_keys
 from pywinauto.controls.uia_controls import ComboBoxWrapper
-from pywinauto.findwindows import find_window
 
-from file_manager import  FileManager
+from utils.file_manager import  FileManager
 import configparser
 
 # 确保只在Windows系统上运行
@@ -984,7 +982,7 @@ class HTClientTrader(IClientTrader):
 
         self.wait(0.1)
 
-        rounded_price = round(price, 2)
+        rounded_price = round(price, 3)
         self._type_edit_control_keys(self.CONFIG["TRADE_PRICE_CONTROL_ID"], str(rounded_price))
         self._type_edit_control_keys(self.CONFIG["TRADE_AMOUNT_CONTROL_ID"], str(int(amount)))
 
@@ -1236,7 +1234,7 @@ if __name__ == "__main__":
     trader = HTClientTrader()
 
     try:
-        config_data = read_config("config.ini")
+        config_data = read_config("../config.ini")
 
 
 
@@ -1265,7 +1263,7 @@ if __name__ == "__main__":
         print("当日委托:", today_entrusts)
 
 
-        trader.buy('600000',11.9,300)
+        trader.buy('513630',1.581,300)
         time.sleep(10)
     except Exception as e:
         print(f"操作出错: {str(e)}")

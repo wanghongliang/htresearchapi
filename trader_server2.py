@@ -2,12 +2,12 @@ from flask import Flask, request, jsonify, g
 import threading
 import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Any
+from typing import Dict, Any
 import logging
 import configparser  # 新增：用于读取配置文件
 
 # 导入之前定义的交易客户端类
-from ht_client_trader import HTClientTrader  # 请替换为实际的模块名
+from trader.ht_client_trader import HTClientTrader  # 请替换为实际的模块名
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
