@@ -560,7 +560,7 @@ class HTClientTrader(IClientTrader):
             print(f"entrust_no={_en_no}")
 
             if _en_no == int(entrust_no):
-                self._cancel_entrust_by_double_click(i)
+                self._cancel_entrust_by_double_click(i+1)
                 return self._handle_pop_dialogs()
         return {"message": "委托单状态错误不能撤单, 该委托单可能已经成交或者已撤"}
 
@@ -1270,7 +1270,8 @@ if __name__ == "__main__":
         # trader.buy('513630',1.581,300)
 
         trader.cancel_entrust(str(339))
-
+        trader.cancel_entrust(str(339))
+        trader.cancel_entrust(str(340))
         time.sleep(10)
     except Exception as e:
         print(f"操作出错: {str(e)}")
