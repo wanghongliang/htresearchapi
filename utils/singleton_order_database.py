@@ -96,6 +96,7 @@ class OrderDatabase:
             create_table_query = """
             CREATE TABLE IF NOT EXISTS orders (
                 id INT AUTO_INCREMENT PRIMARY KEY,
+                symbol VARCHAR(20) NOT NULL,
                 order_type ENUM('buy', 'sell') NOT NULL,
                 price DECIMAL(10, 4) NOT NULL,
                 quantity DECIMAL(10, 4) NOT NULL DEFAULT 1.0,
@@ -109,10 +110,11 @@ class OrderDatabase:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """
             
-            # 检查并添加confirm和quantity字段（如果表已存在但没有该字段）
+            # 检查并添加confirm、quantity和symbol字段（如果表已存在但没有该字段）
             alter_table_queries = [
                 "ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirm TINYINT(1) DEFAULT 0",
-                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity DECIMAL(10, 4) NOT NULL DEFAULT 1.0"
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS quantity DECIMAL(10, 4) NOT NULL DEFAULT 1.0",
+                "ALTER TABLE orders ADD COLUMN IF NOT EXISTS symbol VARCHAR(20) NOT NULL DEFAULT ''"
             ]
 
             self.cursor.execute(create_table_query)
@@ -160,7 +162,7 @@ class OrderDatabase:
     
 
 
-    def insert_order(self, order_type, price, quantity=1.0, status='pending', placed_time=None,
+    def insert_order(self, symbol, order_type, price, quantity=1.0, status='pending', placed_time=None,
                      filled_time=None, profit=None, related_order_id=None, confirm=0):
         """插入新订单记录"""
         # 检查连接状态并尝试重连
@@ -181,11 +183,12 @@ class OrderDatabase:
 
             insert_query = """
             INSERT INTO orders 
-            (order_type, price, quantity, status, placed_time, filled_time, profit, related_order_id, confirm)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            (symbol, order_type, price, quantity, status, placed_time, filled_time, profit, related_order_id, confirm)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             values = (
+                symbol,
                 order_type,
                 price,
                 quantity,
@@ -281,14 +284,14 @@ class OrderDatabase:
         try:
 
             update_query = f"""
-         UPDATE orders 
-SET confirm = 1 
-WHERE id IN (
-    SELECT related_order_id FROM (
-        SELECT related_order_id FROM orders WHERE id = %s
-    ) AS temp
-) or id = %s;
-                
+             UPDATE orders 
+                SET confirm = 1 
+                WHERE id IN (
+                    SELECT related_order_id FROM (
+                        SELECT related_order_id FROM orders WHERE id = %s
+                    ) AS temp
+                ) or id = %s;
+                            
             """
 
             self.cursor.execute(update_query, [order_id,order_id])
@@ -307,7 +310,44 @@ WHERE id IN (
                 self.connection.rollback()
             return False
 
+    def update_order_entrust_id(self, order_id, entrust_id):
+        """更新订单状态"""
+        # 检查连接状态并尝试重连
+        if not (self.connection and self.connection.is_connected()):
+            print("数据库连接已断开，尝试重新连接...")
+            if not self.connect():
+                return False
 
+        # 确保游标存在
+        if not self.cursor:
+            self._create_cursor()
+            if not self.cursor:
+                return False
+
+        try:
+
+            update_query = f"""
+             UPDATE orders 
+                SET entrustment_id = %s 
+                WHERE  id = %s;
+
+            """
+
+            self.cursor.execute(update_query, [entrust_id, order_id])
+            self.connection.commit()
+
+            if self.cursor.rowcount > 0:
+                print(f"订单ID {order_id} 已更新 entrustment_id")
+                return True
+            else:
+                print(f"未找到订单ID {order_id} 或无需更新")
+                return False
+
+        except Error as e:
+            print(f"更新订单状态时发生错误: {e}")
+            if self.connection:
+                self.connection.rollback()
+            return False
 
     def get_order(self, order_id):
         """获取指定ID的订单信息"""

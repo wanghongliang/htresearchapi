@@ -11,13 +11,14 @@ from trader.ht_client_trader import HTClientTrader,read_config
 # 添加utils目录到路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils'))
 from utils.singleton_order_database import OrderDatabase
-
+from datafrom.tdx_market_data_service import MarketDataService
 
 class GridTrading:
-    def __init__(self, trader, initial_price, quantity=1.0, profit_target=0.003, buy_timeout=30, sell_timeout=60,
+    def __init__(self, trader, quoteService, symbol, initial_price, quantity=1.0, profit_target=0.003, buy_timeout=30, sell_timeout=60,
                  db_host='localhost', db_name='m_htresearch', db_user='whl', db_password='Whl308221710_'):
         """
         初始化网格交易策略
+        :param symbol: 股票代码
         :param initial_price: 初始价格
         :param quantity: 下单数量，默认为1.0
         :param profit_target: 目标利润率，默认为0.3%
@@ -28,6 +29,7 @@ class GridTrading:
         :param db_user: 数据库用户名
         :param db_password: 数据库密码
         """
+        self.symbol = symbol
         self.current_price = initial_price
         self.quantity = quantity
         self.profit_target = profit_target
@@ -40,6 +42,7 @@ class GridTrading:
         self.current_order_id = None  # 当前订单ID
         self.last_buy_order_id = None  # 最后一个买单ID，用于关联卖单
         self.trader = trader
+        self.quoteService = quoteService
 
         self.has_orders = None
 
@@ -128,7 +131,12 @@ class GridTrading:
         # 模拟价格小幅波动，上下浮动不超过0.5%
         fluctuation = random.uniform(-0.005, 0.005)
         self.current_price *= (1 + fluctuation)
-        return self.current_price
+
+        quote = self.quoteService.get_stock_quote(self.symbol)
+        if symbol.startswith((  '5')):
+            return round(quote['quote']['price']/10,3)
+
+        return quote['quote']['price']
 
     def place_buy_order(self):
         """下买单"""
@@ -139,13 +147,27 @@ class GridTrading:
         
         # 将买单保存到数据库
         self.current_order_id = self.db.insert_order(
+            symbol=self.symbol,
             order_type='buy',
             price=price,
             quantity=self.quantity,
             status='pending',
             placed_time=self.last_order_time
         )
-        
+
+
+
+        entrustment_id = -1
+        try:
+            entrustment_message = self.trader.buy(self.symbol,price,self.quantity)
+            if '委托编号' in entrustment_message.key():
+                entrustment_id = entrustment_message['委托编号']
+            print(f"entrustment_message={entrustment_message}")
+        except Exception as e:
+            print(e)
+
+        self.db.update_order_entrust_id( self.current_order_id, entrustment_id)
+
         if self.current_order_id:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] 下买单，价格: {price:.4f}，订单ID: {self.current_order_id}")
         else:
@@ -162,6 +184,7 @@ class GridTrading:
         
         # 将卖单保存到数据库，关联到最后一个买单
         self.current_order_id = self.db.insert_order(
+            symbol=self.symbol,
             order_type='sell',
             price=target_price,
             quantity=self.quantity,
@@ -169,7 +192,20 @@ class GridTrading:
             placed_time=self.last_order_time,
             related_order_id=self.last_buy_order_id
         )
-        
+
+
+        entrustment_id = -3
+        try:
+            entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
+            if '委托编号' in entrustment_message.key():
+                entrustment_id = entrustment_message['委托编号']
+            print(f"entrustment_message={entrustment_message}")
+        except Exception as e:
+            print(e)
+
+        self.db.update_order_entrust_id( self.current_order_id, entrustment_id)
+
+
         if self.current_order_id:
             print(
                 f"[{datetime.now().strftime('%H:%M:%S')}] 下卖单，目标价格: {target_price:.4f} (目标收益: {self.profit_target * 100:.2f}%)，订单ID: {self.current_order_id}")
@@ -179,7 +215,7 @@ class GridTrading:
         
         return target_price
 
-    def place_sell_order_related(self, buy_price,last_buy_order_id):
+    def place_sell_order_related(self, symbol,buy_price,last_buy_order_id):
         """下卖单，基于买入价格设置目标利润"""
         target_price = buy_price * (1 + self.profit_target)
         self.last_order_time = datetime.now()
@@ -188,6 +224,7 @@ class GridTrading:
 
         # 将卖单保存到数据库，关联到最后一个买单
         self.current_order_id = self.db.insert_order(
+            symbol=symbol,
             order_type='sell',
             price=target_price,
             quantity=self.quantity,
@@ -195,6 +232,20 @@ class GridTrading:
             placed_time=self.last_order_time,
             related_order_id=last_buy_order_id
         )
+
+
+
+        entrustment_id = -1
+        try:
+            entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
+            if '委托编号' in entrustment_message.key():
+                entrustment_id = entrustment_message['委托编号']
+            print(f"entrustment_message={entrustment_message}")
+        except Exception as e:
+            print(e)
+
+        self.db.update_order_entrust_id( self.current_order_id, entrustment_id)
+
 
         if self.current_order_id:
             print(
@@ -205,72 +256,15 @@ class GridTrading:
 
         return target_price
 
-    def check_order_status(self):
-        """检查订单状态，模拟订单是否成交"""
-        current_price = self.get_current_price()
-        current_time = datetime.now()
+    def get_today_entrusts(self):
+        print("start query ht entrusts !")
+        #查询当日委托
+        today_entrusts = self.trader.today_entrusts
+        print("当日委托:", today_entrusts)
+        return  today_entrusts
 
-        # 检查是否超时
-        if self.last_order_type == 'buy':
-            timeout = self.buy_timeout
-            # 买单成交条件：当前价格小于等于买单价格（可以以更低或等于价格买入）
-            if current_price <= self.order_price:
-                # 模拟有一定概率成交
-                if random.random() < 0.7:  # 70%概率成交
-                    # 更新数据库中的订单状态为已成交
-                    if self.current_order_id:
-                        self.db.update_order_status(
-                            order_id=self.current_order_id,
-                            status='filled',
-                            filled_time=current_time
-                        )
-                        self.last_buy_order_id = self.current_order_id  # 记录买单ID用于关联卖单
-                    
-                    print(f"[{current_time.strftime('%H:%M:%S')}] 买单成交，价格: {current_price:.4f}，订单ID: {self.current_order_id}")
-                    self.holding_position = True
-                    return 'filled'
-        elif self.last_order_type == 'sell':
-            timeout = self.sell_timeout
-            # 卖单成交条件：当前价格大于等于卖单价格（可以以更高或等于价格卖出）
-            if current_price >= self.order_price:
-                # 模拟有一定概率成交
-                if random.random() < 0.7:  # 70%概率成交
-                    profit = (current_price - (self.order_price / (1 + self.profit_target))) / (
-                                self.order_price / (1 + self.profit_target)) * 100
-                    
-                    # 更新数据库中的订单状态为已成交，并记录利润
-                    if self.current_order_id:
-                        self.db.update_order_status(
-                            order_id=self.current_order_id,
-                            status='filled',
-                            filled_time=current_time,
-                            profit=profit
-                        )
-                        self.db.update_order_confirm(
-                            order_id=self.current_order_id
-                        )
-                    print(
-                        f"[{current_time.strftime('%H:%M:%S')}] 卖单成交，价格: {current_price:.4f}，收益: {profit:.4f}%，订单ID: {self.current_order_id}")
-                    self.holding_position = False
-                    return 'filled'
 
-        # 检查是否超时
-        if (current_time - self.last_order_time) > timedelta(seconds=timeout):
-            # 更新数据库中的订单状态为超时
-            if self.current_order_id:
-                self.db.update_order_status(
-                    order_id=self.current_order_id,
-                    status='timeout'
-                )
-            
-            print(
-                f"[{current_time.strftime('%H:%M:%S')}] {self.last_order_type}单超时未成交，当前价格: {current_price:.4f}，订单ID: {self.current_order_id}")
-
-            return 'timeout'
-
-        return 'pending'
-
-    def check_order_status_by_api(self, order):
+    def check_order_status_by_entrusts(self, order, entrusts):
         """检查订单状态，模拟订单是否成交"""
         current_price = self.get_current_price()
         current_time = datetime.now()
@@ -279,68 +273,93 @@ class GridTrading:
         if order['status'] != 'pending':
             return order['status']
 
-        # 检查是否超时
-        if order['last_order_type'] == 'buy':
-            timeout = self.buy_timeout
-            # 买单成交条件：当前价格小于等于买单价格（可以以更低或等于价格买入）
-            if current_price <= self.order_price:
-                # 模拟有一定概率成交
-                if random.random() < 0.7:  # 70%概率成交
-                    # 更新数据库中的订单状态为已成交
-                    if order['current_order_id']:
+        for record in entrusts:
+            print(record)
+            if '委托编号' in record.keys():
+                entrusts_id = record['委托编号']
+                filled_num = record['成交数量']
+                if entrusts_id ==  (order['entrustment_id']):
+                    if filled_num>0:
                         self.db.update_order_status(
-                            order_id= order['current_order_id'],
+                            order_id=order['current_order_id'],
                             status='filled',
                             filled_time=current_time
                         )
                         self.last_buy_order_id = order['current_order_id']  # 记录买单ID用于关联卖单
+                        self.holding_position = True
+                        return 'filled'
 
-                    print(
-                        f"[{current_time.strftime('%H:%M:%S')}] 买单成交，价格: {current_price:.4f}，订单ID: {order['current_order_id']}")
-                    self.holding_position = True
-                    return 'filled'
-        elif self.last_order_type == 'sell':
-            timeout = self.sell_timeout
-            # 卖单成交条件：当前价格大于等于卖单价格（可以以更高或等于价格卖出）
-            if current_price >= self.order_price:
-                # 模拟有一定概率成交
-                if random.random() < 0.7:  # 70%概率成交
-                    profit = (current_price - (self.order_price / (1 + self.profit_target))) / (
-                            self.order_price / (1 + self.profit_target)) * 100
+                    # 检查是否超时
+                    elif (current_time - order['last_order_time']) > timedelta(seconds=timeout):
+                        self.trader.cancel_entrust( str(entrusts_id))
 
-                    # 更新数据库中的订单状态为已成交，并记录利润
-                    if order['current_order_id']:
-                        self.db.update_order_status(
-                            order_id=order['current_order_id'],
-                            status='filled',
-                            filled_time=current_time,
-                            profit=profit
-                        )
-                        self.db.update_order_confirm(
-                            order_id=order['current_order_id']
-                        )
-                    print(
-                        f"[{current_time.strftime('%H:%M:%S')}] 卖单成交，价格: {current_price:.4f}，收益: {profit:.4f}%，订单ID: {order['current_order_id']}")
-                    self.holding_position = False
-                    return 'filled'
 
-        # 检查是否超时
-        if (current_time - order['last_order_time']) > timedelta(seconds=timeout):
-            # 更新数据库中的订单状态为超时
-            if order['current_order_id']:
-                self.db.update_order_status(
-                    order_id=order['current_order_id'],
-                    status='timeout'
-                )
-
-            print(
-                f"[{current_time.strftime('%H:%M:%S')}] {self.last_order_type}单超时未成交，当前价格: {current_price:.4f}，订单ID: {order['current_order_id']}")
-
-            return 'timeout'
+        #
+        # # 检查是否超时
+        # if order['last_order_type'] == 'buy':
+        #     timeout = self.buy_timeout
+        #     # 买单成交条件：当前价格小于等于买单价格（可以以更低或等于价格买入）
+        #     if current_price <= self.order_price:
+        #         # 模拟有一定概率成交
+        #         if random.random() < 0.7:  # 70%概率成交
+        #             # 更新数据库中的订单状态为已成交
+        #             if order['current_order_id']:
+        #                 self.db.update_order_status(
+        #                     order_id= order['current_order_id'],
+        #                     status='filled',
+        #                     filled_time=current_time
+        #                 )
+        #                 self.last_buy_order_id = order['current_order_id']  # 记录买单ID用于关联卖单
+        #
+        #             print(
+        #                 f"[{current_time.strftime('%H:%M:%S')}] 买单成交，价格: {current_price:.4f}，订单ID: {order['current_order_id']}")
+        #             self.holding_position = True
+        #             return 'filled'
+        # elif self.last_order_type == 'sell':
+        #     timeout = self.sell_timeout
+        #     # 卖单成交条件：当前价格大于等于卖单价格（可以以更高或等于价格卖出）
+        #     if current_price >= self.order_price:
+        #         # 模拟有一定概率成交
+        #         if random.random() < 0.7:  # 70%概率成交
+        #             profit = (current_price - (self.order_price / (1 + self.profit_target))) / (
+        #                     self.order_price / (1 + self.profit_target)) * 100
+        #
+        #             # 更新数据库中的订单状态为已成交，并记录利润
+        #             if order['current_order_id']:
+        #                 self.db.update_order_status(
+        #                     order_id=order['current_order_id'],
+        #                     status='filled',
+        #                     filled_time=current_time,
+        #                     profit=profit
+        #                 )
+        #                 self.db.update_order_confirm(
+        #                     order_id=order['current_order_id']
+        #                 )
+        #             print(
+        #                 f"[{current_time.strftime('%H:%M:%S')}] 卖单成交，价格: {current_price:.4f}，收益: {profit:.4f}%，订单ID: {order['current_order_id']}")
+        #             self.holding_position = False
+        #             return 'filled'
+        #
+        # # 检查是否超时
+        # if (current_time - order['last_order_time']) > timedelta(seconds=timeout):
+        #     # 更新数据库中的订单状态为超时
+        #     if order['current_order_id']:
+        #         self.db.update_order_status(
+        #             order_id=order['current_order_id'],
+        #             status='timeout'
+        #         )
+        #
+        #     print(
+        #         f"[{current_time.strftime('%H:%M:%S')}] {self.last_order_type}单超时未成交，当前价格: {current_price:.4f}，订单ID: {order['current_order_id']}")
+        #
+        #     return 'timeout'
 
         return 'pending'
 
     def get_sell_order_by_id(self, order_id):
+        '''
+        根据订单查找关联的订单
+        '''
         for ord in self.has_orders:
             print(f"get_sell_order_by_id order_id={order_id}")
             if ord['related_order_id'] == order_id :
@@ -348,6 +367,8 @@ class GridTrading:
                 return ord
 
         return None
+
+
 
     def run(self, duration=None):
         """运行网格交易策略"""
@@ -381,20 +402,20 @@ class GridTrading:
                 last_sell_ord = None
 
                 if self.has_orders:
+                    today_entrusts = self.get_today_entrusts()
                     for ord in self.has_orders:
                         print( ord )
-
                         #如果订单是买单，需要下卖单
-                        ord_status = self.check_order_status_by_api(
-                            {'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
-                             'last_order_time': ord['placed_time'],'status':ord['status']})
+                        ord_status = self.check_order_status_by_entrusts(
+                            {'entrustment_id': ord['entrustment_id'], 'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
+                             'last_order_time': ord['placed_time'],'status':ord['status']}, today_entrusts)
 
                         print(f"ord_status={ord_status}")
                         if ord['status'] == 'filled' and ord['order_type'] == 'buy':
                             # 判断是否有卖单
                             if self.get_sell_order_by_id(ord['id']) is None:
                                 # 买单成交，下卖单
-                                self.place_sell_order_related(float(ord['price']), ord['id'])
+                                self.place_sell_order_related(self.symbol,float(ord['price']), ord['id'])
 
                     #
                     #
@@ -484,9 +505,15 @@ if __name__ == "__main__":
             print("登录失败")
             sys.exit(1)
 
-            
+        symbol = '513630'
+        symbol = '600000'
+        # 创建市场数据服务
+        service = MarketDataService()
+        # 分析交易活跃度
+        service.analyze_trading_activity(symbol, count=30)
+
         # 初始化策略，初始价格设为100，运行300秒（5分钟）
-        grid_trader = GridTrading( trader,initial_price=100.0)
+        grid_trader = GridTrading( trader,service,symbol,initial_price=100.0,quantity=100)
         grid_trader.run(duration=30000000)
 
     except Exception as e:

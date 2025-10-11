@@ -112,7 +112,7 @@ class HTClientTrader(IClientTrader):
         },
 
         # 撤单相关
-        "CANCEL_ENTRUST_ENTRUST_FIELD": "合同编号",
+        "CANCEL_ENTRUST_ENTRUST_FIELD": "委托编号",
         "CANCEL_ENTRUST_GRID_LEFT_MARGIN": 50,
         "CANCEL_ENTRUST_GRID_FIRST_ROW_HEIGHT": 30,
         "CANCEL_ENTRUST_GRID_ROW_HEIGHT": 16,
@@ -555,7 +555,11 @@ class HTClientTrader(IClientTrader):
 
         self.refresh()
         for i, entrust in enumerate(self.cancel_entrusts):
-            if entrust.get(self.CONFIG["CANCEL_ENTRUST_ENTRUST_FIELD"]) == entrust_no:
+
+            _en_no = entrust.get(self.CONFIG["CANCEL_ENTRUST_ENTRUST_FIELD"])
+            print(f"entrust_no={_en_no}")
+
+            if _en_no == int(entrust_no):
                 self._cancel_entrust_by_double_click(i)
                 return self._handle_pop_dialogs()
         return {"message": "委托单状态错误不能撤单, 该委托单可能已经成交或者已撤"}
@@ -1250,20 +1254,23 @@ if __name__ == "__main__":
             print("登录失败")
             sys.exit(1)
 
-        # 获取资金信息
-        balance = trader.balance
-        print("资金信息:", balance)
-
-        # 获取持仓信息
-        positions = trader.position
-        print("持仓信息:", positions)
+        # # 获取资金信息
+        # balance = trader.balance
+        # print("资金信息:", balance)
         #
-        # 获取当日委托
-        today_entrusts = trader.today_entrusts
-        print("当日委托:", today_entrusts)
+        # # 获取持仓信息
+        # positions = trader.position
+        # print("持仓信息:", positions)
+        # #
+        # # 获取当日委托
+        # today_entrusts = trader.today_entrusts
+        # print("当日委托:", today_entrusts)
+        #
+        #
+        # trader.buy('513630',1.581,300)
 
+        trader.cancel_entrust(str(339))
 
-        trader.buy('513630',1.581,300)
         time.sleep(10)
     except Exception as e:
         print(f"操作出错: {str(e)}")
