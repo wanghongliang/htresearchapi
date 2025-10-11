@@ -1,0 +1,10 @@
+#config.ini example:
+
+
+[Trader]
+exe_path = C:\htwt\xiadan.exe
+
+[Account]
+user = 333
+password = 333
+comm_password=333
