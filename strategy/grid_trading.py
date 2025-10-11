@@ -379,18 +379,19 @@ class GridTrading:
 
         start_time = datetime.now()
 
-        # 只有在没有活跃订单时才下新的买单
-        if self.current_order_id is None:
-            print("没有活跃订单，下新的买单")
-            self.place_buy_order()
-        else:
-            print(f"恢复活跃订单: ID={self.current_order_id}, 类型={self.last_order_type}")
-            print(f"当前持仓状态: {'有持仓' if self.holding_position else '无持仓'}")
-            if self.last_buy_order_id:
-                print(f"关联买单ID: {self.last_buy_order_id}")
+        # # 只有在没有活跃订单时才下新的买单
+        # if self.current_order_id is None:
+        #     print("没有活跃订单，下新的买单")
+        #     self.place_buy_order()
+        # else:
+        #     print(f"恢复活跃订单: ID={self.current_order_id}, 类型={self.last_order_type}")
+        #     print(f"当前持仓状态: {'有持仓' if self.holding_position else '无持仓'}")
+        #     if self.last_buy_order_id:
+        #         print(f"关联买单ID: {self.last_buy_order_id}")
 
         try:
             while True:
+
                 # 检查是否达到运行时长
                 if duration and (datetime.now() - start_time) > timedelta(seconds=duration):
                     print("\n交易时长已到，结束交易")
@@ -405,7 +406,8 @@ class GridTrading:
                     today_entrusts = self.get_today_entrusts()
                     for ord in self.has_orders:
                         print( ord )
-                        #如果订单是买单，需要下卖单
+
+                        #根据订单记录，查询订单状态
                         ord_status = self.check_order_status_by_entrusts(
                             {'entrustment_id': ord['entrustment_id'], 'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
                              'last_order_time': ord['placed_time'],'status':ord['status']}, today_entrusts)
@@ -416,25 +418,6 @@ class GridTrading:
                             if self.get_sell_order_by_id(ord['id']) is None:
                                 # 买单成交，下卖单
                                 self.place_sell_order_related(self.symbol,float(ord['price']), ord['id'])
-
-                    #
-                    #
-                    # if ord['order_type'] == 'buy':
-                    #     ord_status = self.check_order_status_by_api({'last_order_type':ord['order_type'],'current_order_id':ord['id'],'last_order_time':ord['placed_time']})
-                    #     print(f"ord_status={ord_status}")
-                    #     if ord['status'] == 'filled' and ord['order_type'] == 'buy':
-                    #         #判断是否有卖单
-                    #         if self.get_sell_order_by_id( ord['id']) is None:
-                    #             # 买单成交，下卖单
-                    #             self.place_sell_order(ord['price'])
-                    #
-                    # elif ord['order_type'] == 'sell':
-                    #     ord_status = self.check_order_status_by_api(
-                    #         {'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
-                    #          'last_order_time': ord['placed_time']})
-                    #     print(f"ord_status={ord_status}")
-
-
 
                         if ord['status'] == 'filled':
                             if last_sell_ord is not None:
@@ -447,33 +430,13 @@ class GridTrading:
                     print( f"last_sell_ord = {last_sell_ord}")
 
                 #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
+
+                #如果没有买单信息，需要下一个买单
                 if self.has_orders is not None and len(self.has_orders) == 0:
                     self.place_buy_order()
 
-
+                #重新加载订单数据
                 self.load_pending_orders()
-
-
-                #
-                # # 检查订单状态
-                # status = self.check_order_status()
-                #
-                # print(f"status={status}")
-                #
-                # if status == 'filled':
-                #     # 订单成交，根据类型下相反订单
-                #     if self.last_order_type == 'buy':
-                #         # 买单成交，下卖单
-                #         self.place_sell_order(self.order_price)
-                #     else:
-                #         # 卖单成交，下买单
-                #         self.place_buy_order()
-                # elif status == 'timeout':
-                #     # 订单超时，重新下相同类型的订单
-                #     if self.last_order_type == 'buy':
-                #         self.place_buy_order()
-                #     else:
-                #         self.place_sell_order(self.order_price / (1 + self.profit_target))  # 根据利润率反推买入价
 
                 # 每秒检查一次
                 time.sleep(1)
