@@ -291,7 +291,16 @@ class GridTrading:
 
                     # 检查是否超时
                     elif (current_time - order['last_order_time']) > timedelta(seconds=timeout):
-                        self.trader.cancel_entrust( str(entrusts_id))
+
+                        if '备注' in record.keys():
+                            if '已撤' in record['备注']:
+                                self.db.update_order_status(
+                                            order_id=order['current_order_id'],
+                                            status='cancel'
+                                        )
+                                return 'cancel'
+                            else:
+                                self.trader.cancel_entrust( str(entrusts_id))
 
 
         #
