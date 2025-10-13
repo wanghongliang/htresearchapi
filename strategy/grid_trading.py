@@ -197,8 +197,8 @@ class GridTrading:
         entrustment_id = -3
         try:
             entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
-            if '委托编号' in entrustment_message.key():
-                entrustment_id = entrustment_message['委托编号']
+            if 'entrust_id' in entrustment_message.key():
+                entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
         except Exception as e:
             print(e)
@@ -238,8 +238,8 @@ class GridTrading:
         entrustment_id = -1
         try:
             entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
-            if '委托编号' in entrustment_message.key():
-                entrustment_id = entrustment_message['委托编号']
+            if 'entrust_id' in entrustment_message.key():
+                entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
         except Exception as e:
             print(e)
@@ -478,7 +478,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         symbol = '513630'
-        symbol = '600000'
+        ##symbol = '600000'
         # 创建市场数据服务
         service = MarketDataService()
         # 分析交易活跃度

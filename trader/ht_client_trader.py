@@ -1159,8 +1159,8 @@ class HTClientTrader(IClientTrader):
                         "message": "success",
                         entrust_match.group(1): entrust_match.group(2)
                     }
-                self._close_prompt_windows()
-                return {"message": message if message else "success"}
+                entrust_id = self._close_prompt_windows()
+                return {"message": message if message else "success","entrust_id":entrust_id}
             else:
                 dialog.close()
                 return {"message": f"关闭对话框: {title}"}
@@ -1173,10 +1173,23 @@ class HTClientTrader(IClientTrader):
         self.wait(1)
         if not self._app:
             return
-
+        entrust_id = ''
         for window in self._app.windows(class_name="#32770", visible_only=True):
             title = window.window_text()
-            print(f"title={title}")
+            message = ''
+            try:
+                static_texts = window.children(class_name="Edit")
+                message = "\n".join([t.window_text() for t in static_texts if t.window_text()])
+
+                # 同时查找委托编号和合同编号
+                entrust_match = re.search(r'(委托编号|合同编号)[:：]\s*(\w+)', message)
+                if entrust_match:
+                    entrust_id = entrust_match.group(2)
+
+            except Exception as e :
+                print(f" exception : {e}")
+
+            print(f"title={title} message={message}")
             if title != self.CONFIG["TITLE"] :
                 logger.info(f"关闭提示窗口: {title}")
                 try:
@@ -1185,6 +1198,8 @@ class HTClientTrader(IClientTrader):
                     pass
                 self.wait(0.2)
         self.wait(1)
+
+        return entrust_id
 
     def _get_clipboard_text(self) -> str:
         """获取剪贴板文本"""
@@ -1267,12 +1282,15 @@ if __name__ == "__main__":
         # print("当日委托:", today_entrusts)
         #
         #
-        # trader.buy('513630',1.581,300)
-
-        trader.cancel_entrust(str(339))
-        trader.cancel_entrust(str(339))
-        trader.cancel_entrust(str(340))
-        time.sleep(10)
+        message =  trader.buy('513630',1.561,300)
+        print( message )
+        #
+        message =  trader.sell('513630',1.581,300)
+        print( message )
+        # trader.cancel_entrust(str(339))
+        # trader.cancel_entrust(str(339))
+        # trader.cancel_entrust(str(340))
+        # time.sleep(10)
     except Exception as e:
         print(f"操作出错: {str(e)}")
     finally:
