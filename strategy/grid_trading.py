@@ -14,7 +14,7 @@ from utils.singleton_order_database import OrderDatabase
 from datafrom.tdx_market_data_service import MarketDataService
 
 class GridTrading:
-    def __init__(self, trader, quoteService, symbol, initial_price, quantity=1.0, profit_target=0.003, buy_timeout=30, sell_timeout=60,
+    def __init__(self, trader, quoteService, symbol, initial_price, quantity=1.0, profit_target=0.0012, buy_timeout=30, sell_timeout=60,
                  db_host='localhost', db_name='m_htresearch', db_user='whl', db_password='Whl308221710_'):
         """
         初始化网格交易策略
@@ -160,11 +160,12 @@ class GridTrading:
         entrustment_id = -1
         try:
             entrustment_message = self.trader.buy(self.symbol,price,self.quantity)
-            if '委托编号' in entrustment_message.key():
-                entrustment_id = entrustment_message['委托编号']
+            if 'entrust_id' in entrustment_message.keys():
+                entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
         except Exception as e:
             print(e)
+            traceback.print_exc()
 
         self.db.update_order_entrust_id( self.current_order_id, entrustment_id)
 
@@ -197,11 +198,12 @@ class GridTrading:
         entrustment_id = -3
         try:
             entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
-            if 'entrust_id' in entrustment_message.key():
+            if 'entrust_id' in entrustment_message.keys():
                 entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
         except Exception as e:
             print(e)
+            traceback.print_exc()
 
         self.db.update_order_entrust_id( self.current_order_id, entrustment_id)
 
@@ -217,7 +219,7 @@ class GridTrading:
 
     def place_sell_order_related(self, symbol,buy_price,last_buy_order_id):
         """下卖单，基于买入价格设置目标利润"""
-        target_price = buy_price * (1 + self.profit_target)
+        target_price = round(buy_price * (1 + self.profit_target),3)
         self.last_order_time = datetime.now()
         self.last_order_type = 'sell'
         self.order_price = target_price
@@ -238,11 +240,12 @@ class GridTrading:
         entrustment_id = -1
         try:
             entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
-            if 'entrust_id' in entrustment_message.key():
+            if 'entrust_id' in entrustment_message.keys():
                 entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
         except Exception as e:
             print(e)
+            traceback.print_exc()
 
         self.db.update_order_entrust_id( self.current_order_id, entrustment_id)
 
@@ -287,6 +290,13 @@ class GridTrading:
                         )
                         self.last_buy_order_id = order['current_order_id']  # 记录买单ID用于关联卖单
                         self.holding_position = True
+
+                        #卖成交
+                        if order['last_order_type'] == 'sell':
+                            self.db.update_order_confirm(
+                                order_id=order['current_order_id']
+                            )
+
                         return 'filled'
 
                     # 检查是否超时
@@ -300,7 +310,10 @@ class GridTrading:
                                         )
                                 return 'cancel'
                             else:
-                                self.trader.cancel_entrust( str(entrusts_id))
+                                if current_price > float(order['price'])+0.001:
+                                    self.trader.cancel_entrust( str(entrusts_id))
+                                else:
+                                    print(f" quote current_price={current_price} order price = {order['price']}")
 
 
         #
@@ -379,11 +392,31 @@ class GridTrading:
 
 
 
+    def is_trading_time(self):
+        """检查当前时间是否在交易时间范围内"""
+        now = datetime.now()
+        current_time = now.time()
+        
+        # 上午交易时间: 9:29 - 11:30
+        morning_start = datetime.strptime('09:29', '%H:%M').time()
+        morning_end = datetime.strptime('11:30', '%H:%M').time()
+        
+        # 下午交易时间: 12:59 - 15:00
+        afternoon_start = datetime.strptime('12:59', '%H:%M').time()
+        afternoon_end = datetime.strptime('15:00', '%H:%M').time()
+        
+        # 检查是否在交易时间范围内
+        is_morning_trading = morning_start <= current_time <= morning_end
+        is_afternoon_trading = afternoon_start <= current_time <= afternoon_end
+        
+        return is_morning_trading or is_afternoon_trading
+    
     def run(self, duration=None):
         """运行网格交易策略"""
         print("开始网格交易策略...")
         print(f"初始价格: {self.current_price:.4f}，目标收益: {self.profit_target * 100:.2f}%")
         print(f"买单超时: {self.buy_timeout}秒，卖单超时: {self.sell_timeout}秒")
+        print("交易时间: 9:29-11:30, 12:59-15:00")
         print("----------------------------------------")
 
         start_time = datetime.now()
@@ -400,6 +433,12 @@ class GridTrading:
 
         try:
             while True:
+                # 检查是否在交易时间范围内
+                if not self.is_trading_time():
+                    current_time = datetime.now().strftime('%H:%M:%S')
+                    print(f"\n[{current_time}] 当前不在交易时间范围内，等待中...")
+                    time.sleep(60)  # 等待1分钟后再检查
+                    continue
 
                 # 检查是否达到运行时长
                 if duration and (datetime.now() - start_time) > timedelta(seconds=duration):
@@ -410,39 +449,76 @@ class GridTrading:
 
                 #找出最后的订单时间
                 last_sell_ord = None
+                last_buy_ord = None
+                last_buy_ord_padding = None
 
                 if self.has_orders:
                     today_entrusts = self.get_today_entrusts()
                     for ord in self.has_orders:
                         print( ord )
 
-                        #根据订单记录，查询订单状态
-                        ord_status = self.check_order_status_by_entrusts(
-                            {'entrustment_id': ord['entrustment_id'], 'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
-                             'last_order_time': ord['placed_time'],'status':ord['status']}, today_entrusts)
+                        try:
+                            #根据订单记录，查询订单状态
+                            ord_status = self.check_order_status_by_entrusts(
+                                {'price':ord['price'],'entrustment_id': ord['entrustment_id'], 'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
+                                 'last_order_time': ord['placed_time'],'status':ord['status']}, today_entrusts)
 
-                        print(f"ord_status={ord_status}")
-                        if ord['status'] == 'filled' and ord['order_type'] == 'buy':
-                            # 判断是否有卖单
-                            if self.get_sell_order_by_id(ord['id']) is None:
-                                # 买单成交，下卖单
-                                self.place_sell_order_related(self.symbol,float(ord['price']), ord['id'])
+                            print(f"ord_status={ord_status}")
+                            if ord['status'] == 'filled' and ord['order_type'] == 'buy':
+                                # 判断是否有卖单
+                                if self.get_sell_order_by_id(ord['id']) is None:
+                                    # 买单成交，下卖单
+                                    self.place_sell_order_related(self.symbol,float(ord['price']), ord['id'])
 
-                        if ord['status'] == 'filled':
-                            if last_sell_ord is not None:
-                                if last_sell_ord['filled_time']<ord['filled_time']:
+                            if ord['status'] == 'filled':
+                                if last_sell_ord is not None:
+                                    if last_sell_ord['filled_time']<ord['filled_time']:
+                                        last_sell_ord = ord
+                                else:
                                     last_sell_ord = ord
+
+                                if ord['order_type'] == 'buy':
+                                    if last_buy_ord is not None:
+                                        if last_buy_ord['filled_time'] < ord['filled_time']:
+                                            last_buy_ord = ord
+                                    else:
+                                        last_buy_ord = ord
                             else:
-                                last_sell_ord = ord
+                                if ord['order_type'] == 'buy':
+                                    last_buy_ord_padding = ord
+
+
+                        except Exception as e:
+                            print(f" exception e={e}")
+                            traceback.print_exc()
 
                 if last_sell_ord is not None and (datetime.now() -last_sell_ord['filled_time'] ).total_seconds()>60:
                     print( f"last_sell_ord = {last_sell_ord}")
 
-                #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
 
-                #如果没有买单信息，需要下一个买单
-                if self.has_orders is not None and len(self.has_orders) == 0:
-                    self.place_buy_order()
+
+                try:
+                    #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
+
+                    #如果没有买单信息，需要下一个买单
+                    if self.has_orders is not None and len(self.has_orders) == 0:
+                        self.place_buy_order()
+
+                    elif last_buy_ord is not None:
+
+
+                        current_price = self.get_current_price()
+                        buy_price  = float(last_buy_ord['price'])*0.995
+                        buy_time = last_buy_ord['filled_time']
+                        print(f"current_price={current_price} 可以下单的价格：price = {buy_price} buy_time={buy_time} last_buy_ord_padding={last_buy_ord_padding}")
+
+                        if last_buy_ord_padding is None:
+                            if current_price < buy_price:
+                                self.place_buy_order()
+
+                except Exception as e :
+                    print(f" exception {e}")
+                    traceback.print_exc()
 
                 #重新加载订单数据
                 self.load_pending_orders()
@@ -485,11 +561,12 @@ if __name__ == "__main__":
         service.analyze_trading_activity(symbol, count=30)
 
         # 初始化策略，初始价格设为100，运行300秒（5分钟）
-        grid_trader = GridTrading( trader,service,symbol,initial_price=100.0,quantity=100)
+        grid_trader = GridTrading( trader,service,symbol,initial_price=100.0,quantity=1000)
         grid_trader.run(duration=30000000)
 
     except Exception as e:
         print(f"操作出错: {str(e)}")
+        traceback.print_exc()
     finally:
         # 退出客户端
         # trader.exit()  # 实际使用时取消注释

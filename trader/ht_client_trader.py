@@ -1157,7 +1157,7 @@ class HTClientTrader(IClientTrader):
                 if entrust_match:
                     return {
                         "message": "success",
-                        entrust_match.group(1): entrust_match.group(2)
+                        "entrust_id": entrust_match.group(2)
                     }
                 entrust_id = self._close_prompt_windows()
                 return {"message": message if message else "success","entrust_id":entrust_id}
@@ -1283,7 +1283,7 @@ if __name__ == "__main__":
         #
         #
         message =  trader.buy('513630',1.561,300)
-        print( message )
+        print( message['entrust_id'],message )
         #
         message =  trader.sell('513630',1.581,300)
         print( message )
