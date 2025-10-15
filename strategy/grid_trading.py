@@ -138,9 +138,10 @@ class GridTrading:
 
         return quote['quote']['price']
 
-    def place_buy_order(self):
+    def place_buy_order(self, offset_ratio = 1.0):
         """下买单"""
         price = self.get_current_price()
+        price = round( price*float(offset_ratio), 3)
         self.last_order_time = datetime.now()
         self.last_order_type = 'buy'
         self.order_price = price
@@ -310,7 +311,7 @@ class GridTrading:
                                         )
                                 return 'cancel'
                             else:
-                                if current_price > float(order['price'])+0.001:
+                                if current_price > float(order['price'])*float(1.006):
                                     self.trader.cancel_entrust( str(entrusts_id))
                                 else:
                                     print(f" quote current_price={current_price} order price = {order['price']}")
@@ -432,7 +433,7 @@ class GridTrading:
 
                     #如果没有买单信息，需要下一个买单
                     if self.has_orders is not None and len(self.has_orders) == 0:
-                        self.place_buy_order()
+                        self.place_buy_order(0.9995)
 
                     elif last_buy_ord is not None:
 
