@@ -532,14 +532,12 @@ class GridTrading:
             print(f"e={e}" )
             traceback.print_exc()
 
-if __name__ == "__main__":
-
+def start_trading():
     # 初始化交易器
     trader = HTClientTrader()
 
     try:
         config_data = read_config("../config.ini")
- 
 
         # 登录客户端
         login_success = trader.login(
@@ -561,7 +559,7 @@ if __name__ == "__main__":
         service.analyze_trading_activity(symbol, count=30)
 
         # 初始化策略，初始价格设为100，运行300秒（5分钟）
-        grid_trader = GridTrading( trader,service,symbol,initial_price=100.0,quantity=1000)
+        grid_trader = GridTrading(trader, service, symbol, initial_price=100.0, quantity=1000)
         grid_trader.run(duration=30000000)
 
     except Exception as e:
@@ -571,3 +569,7 @@ if __name__ == "__main__":
         # 退出客户端
         # trader.exit()  # 实际使用时取消注释
         pass
+
+
+if __name__ == "__main__":
+    start_trading()
