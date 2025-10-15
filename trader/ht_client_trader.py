@@ -482,11 +482,13 @@ class HTClientTrader(IClientTrader):
                 # 打印窗口标题以确认
                 print(f"找到窗口: {self._main.window_text()}")
 
-            self._main.wait("exists enabled visible ready", timeout=60)
+            self._main.wait("exists enabled visible ready", timeout=160)
 
             # 关闭登录后可能出现的提示窗口
             self._close_prompt_windows()
-
+            time.sleep(5)
+            # 关闭登录后可能出现的提示窗口
+            self._close_prompt_windows()
             self._init_toolbar()
             self._connected = True
             logger.info("登录成功")
