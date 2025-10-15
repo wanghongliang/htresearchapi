@@ -15,7 +15,7 @@ from datafrom.tdx_market_data_service import MarketDataService
 
 class GridTrading:
     def __init__(self, trader, quoteService, symbol, initial_price, quantity=1.0, profit_target=0.0012, buy_timeout=30, sell_timeout=60,
-                 db_host='localhost', db_name='m_htresearch', db_user='whl', db_password='Whl308221710_'):
+                 db_host='192.168.0.116', db_name='m_htresearch', db_user='whl', db_password='Whl308221710_'):
         """
         初始化网格交易策略
         :param symbol: 股票代码
