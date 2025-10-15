@@ -133,7 +133,7 @@ class GridTrading:
         self.current_price *= (1 + fluctuation)
 
         quote = self.quoteService.get_stock_quote(self.symbol)
-        if symbol.startswith((  '5')):
+        if self.symbol.startswith(('5')):
             return round(quote['quote']['price']/10,3)
 
         return quote['quote']['price']
