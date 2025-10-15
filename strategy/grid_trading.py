@@ -537,7 +537,7 @@ def start_trading():
     trader = HTClientTrader()
 
     try:
-        config_data = read_config("../config.ini")
+        config_data = read_config("./config.ini")
 
         # 登录客户端
         login_success = trader.login(
