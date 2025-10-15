@@ -316,66 +316,6 @@ class GridTrading:
                                     print(f" quote current_price={current_price} order price = {order['price']}")
 
 
-        #
-        # # 检查是否超时
-        # if order['last_order_type'] == 'buy':
-        #     timeout = self.buy_timeout
-        #     # 买单成交条件：当前价格小于等于买单价格（可以以更低或等于价格买入）
-        #     if current_price <= self.order_price:
-        #         # 模拟有一定概率成交
-        #         if random.random() < 0.7:  # 70%概率成交
-        #             # 更新数据库中的订单状态为已成交
-        #             if order['current_order_id']:
-        #                 self.db.update_order_status(
-        #                     order_id= order['current_order_id'],
-        #                     status='filled',
-        #                     filled_time=current_time
-        #                 )
-        #                 self.last_buy_order_id = order['current_order_id']  # 记录买单ID用于关联卖单
-        #
-        #             print(
-        #                 f"[{current_time.strftime('%H:%M:%S')}] 买单成交，价格: {current_price:.4f}，订单ID: {order['current_order_id']}")
-        #             self.holding_position = True
-        #             return 'filled'
-        # elif self.last_order_type == 'sell':
-        #     timeout = self.sell_timeout
-        #     # 卖单成交条件：当前价格大于等于卖单价格（可以以更高或等于价格卖出）
-        #     if current_price >= self.order_price:
-        #         # 模拟有一定概率成交
-        #         if random.random() < 0.7:  # 70%概率成交
-        #             profit = (current_price - (self.order_price / (1 + self.profit_target))) / (
-        #                     self.order_price / (1 + self.profit_target)) * 100
-        #
-        #             # 更新数据库中的订单状态为已成交，并记录利润
-        #             if order['current_order_id']:
-        #                 self.db.update_order_status(
-        #                     order_id=order['current_order_id'],
-        #                     status='filled',
-        #                     filled_time=current_time,
-        #                     profit=profit
-        #                 )
-        #                 self.db.update_order_confirm(
-        #                     order_id=order['current_order_id']
-        #                 )
-        #             print(
-        #                 f"[{current_time.strftime('%H:%M:%S')}] 卖单成交，价格: {current_price:.4f}，收益: {profit:.4f}%，订单ID: {order['current_order_id']}")
-        #             self.holding_position = False
-        #             return 'filled'
-        #
-        # # 检查是否超时
-        # if (current_time - order['last_order_time']) > timedelta(seconds=timeout):
-        #     # 更新数据库中的订单状态为超时
-        #     if order['current_order_id']:
-        #         self.db.update_order_status(
-        #             order_id=order['current_order_id'],
-        #             status='timeout'
-        #         )
-        #
-        #     print(
-        #         f"[{current_time.strftime('%H:%M:%S')}] {self.last_order_type}单超时未成交，当前价格: {current_price:.4f}，订单ID: {order['current_order_id']}")
-        #
-        #     return 'timeout'
-
         return 'pending'
 
     def get_sell_order_by_id(self, order_id):
@@ -420,16 +360,6 @@ class GridTrading:
         print("----------------------------------------")
 
         start_time = datetime.now()
-
-        # # 只有在没有活跃订单时才下新的买单
-        # if self.current_order_id is None:
-        #     print("没有活跃订单，下新的买单")
-        #     self.place_buy_order()
-        # else:
-        #     print(f"恢复活跃订单: ID={self.current_order_id}, 类型={self.last_order_type}")
-        #     print(f"当前持仓状态: {'有持仓' if self.holding_position else '无持仓'}")
-        #     if self.last_buy_order_id:
-        #         print(f"关联买单ID: {self.last_buy_order_id}")
 
         try:
             while True:
@@ -508,7 +438,7 @@ class GridTrading:
 
 
                         current_price = self.get_current_price()
-                        buy_price  = float(last_buy_ord['price'])*0.995
+                        buy_price  = float(last_buy_ord['price'])*0.998
                         buy_time = last_buy_ord['filled_time']
                         print(f"current_price={current_price} 可以下单的价格：price = {buy_price} buy_time={buy_time} last_buy_ord_padding={last_buy_ord_padding}")
 
