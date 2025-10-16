@@ -352,6 +352,17 @@ class GridTrading:
         
         return is_morning_trading or is_afternoon_trading
     
+    def is_after_market_close(self):
+        """检查当前时间是否在收盘后"""
+        now = datetime.now()
+        current_time = now.time()
+        
+        # 股市收盘时间: 15:00
+        market_close_time = datetime.strptime('15:10', '%H:%M').time()
+        
+        # 检查是否在收盘后（15:00之后）
+        return current_time > market_close_time
+    
     def run(self, duration=None):
         """运行网格交易策略"""
         print("开始网格交易策略...")
@@ -364,6 +375,23 @@ class GridTrading:
 
         try:
             while True:
+
+
+                if self.is_after_market_close():
+                    current_time = datetime.now().strftime('%H:%M:%S')
+                    today_entrusts = self.get_today_entrusts()
+                    for ord in self.has_orders:
+                        print( ord )
+                        #收盘后，把所有的空订单记录状态设为取消
+                        if ( ord['status'] == 'pending' ) or  ord['order_type'] == 'sell':
+                            #把orders 表的 sell记录 状态更新为 cancel
+                            self.db.update_order_status(
+                                order_id=ord['id'],
+                                status='cancel'
+                            )
+                    time.sleep(60)  # 等待1分钟后再检查
+                    continue
+
                 # 检查是否在交易时间范围内
                 if not self.is_trading_time():
                     current_time = datetime.now().strftime('%H:%M:%S')
@@ -436,8 +464,6 @@ class GridTrading:
                         self.place_buy_order(0.9995)
 
                     elif last_buy_ord is not None:
-
-
                         current_price = self.get_current_price()
                         buy_price  = float(last_buy_ord['price'])*0.998
                         buy_time = last_buy_ord['filled_time']
