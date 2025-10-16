@@ -383,7 +383,7 @@ class GridTrading:
                     for ord in self.has_orders:
                         print( ord )
                         #收盘后，把所有的空订单记录状态设为取消
-                        if ( ord['status'] == 'pending' ) or  ord['order_type'] == 'sell':
+                        if ord['status'] == 'pending'  :
                             #把orders 表的 sell记录 状态更新为 cancel
                             self.db.update_order_status(
                                 order_id=ord['id'],
