@@ -390,7 +390,7 @@ class GridTrading:
                                 status='cancel'
                             )
                     time.sleep(60)  # 等待1分钟后再检查
-                    continue
+
 
                 # 检查是否在交易时间范围内
                 if not self.is_trading_time():
