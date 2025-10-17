@@ -378,8 +378,6 @@ class GridTrading:
 
 
                 if self.is_after_market_close():
-                    current_time = datetime.now().strftime('%H:%M:%S')
-                    today_entrusts = self.get_today_entrusts()
                     for ord in self.has_orders:
                         print( ord )
                         #收盘后，把所有的空订单记录状态设为取消
