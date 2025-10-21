@@ -145,7 +145,7 @@ class OrderDatabase:
         try:
             query = """
             SELECT * FROM orders 
-            WHERE status = 'pending' 
+            WHERE ( status = 'pending' AND confirm = 0 )
                OR (status = 'filled' AND confirm = 0)
             ORDER BY placed_time ASC
             """
