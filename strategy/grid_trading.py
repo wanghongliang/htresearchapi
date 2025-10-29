@@ -514,7 +514,7 @@ def start_trading():
         service.analyze_trading_activity(symbol, count=30)
 
         # 初始化策略，初始价格设为100，运行300秒（5分钟）
-        grid_trader = GridTrading(trader, service, symbol, initial_price=100.0, quantity=1000)
+        grid_trader = GridTrading(trader, service, symbol, initial_price=100.0, quantity=5000)
         grid_trader.run(duration=30000000)
 
     except Exception as e:
