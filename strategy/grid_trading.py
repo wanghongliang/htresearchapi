@@ -180,6 +180,9 @@ class GridTrading:
     def place_sell_order(self, buy_price):
         """下卖单，基于买入价格设置目标利润"""
         target_price = buy_price * (1 + self.profit_target)
+        price = self.get_current_price()
+
+        target_price = max(price, target_price)
         self.last_order_time = datetime.now()
         self.last_order_type = 'sell'
         self.order_price = target_price
@@ -221,6 +224,12 @@ class GridTrading:
     def place_sell_order_related(self, symbol,buy_price,last_buy_order_id):
         """下卖单，基于买入价格设置目标利润"""
         target_price = round(buy_price * (1 + self.profit_target),3)
+
+
+        price = self.get_current_price()
+
+        target_price = max(price, target_price)
+
         self.last_order_time = datetime.now()
         self.last_order_type = 'sell'
         self.order_price = target_price
