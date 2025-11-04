@@ -72,7 +72,7 @@ class GridTrading:
                 self.has_orders = []
                 return []
             
-            print(f"加载到 {len(pending_orders)} 个未完成的订单:")
+            print(f"{datetime.now()} 加载到 {len(pending_orders)} 个未完成的订单:")
             
             # 按时间排序，处理最新的订单
             latest_order = None
