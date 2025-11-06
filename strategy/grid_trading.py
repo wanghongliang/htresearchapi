@@ -479,6 +479,11 @@ class GridTrading:
                         if last_buy_ord_padding is None:
                             if current_price < buy_price:
                                 self.place_buy_order()
+                        else:
+                            #买单没有成交，需要撤单
+                            if last_buy_ord_padding is not None and (
+                                    datetime.now() - last_buy_ord_padding['placed_time']).total_seconds() > 60:
+                                self.trader.cancel_entrust(last_buy_ord_padding['entrustment_id'])
 
                 except Exception as e :
                     print(f" exception {e}")
