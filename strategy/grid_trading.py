@@ -483,7 +483,12 @@ class GridTrading:
                     #买单没有成交，需要撤单
                     if last_buy_ord_padding is not None and (
                             datetime.now() - last_buy_ord_padding['placed_time']).total_seconds() > 60:
-                        self.trader.cancel_entrust(last_buy_ord_padding['entrustment_id'])
+                        #self.trader.cancel_entrust(last_buy_ord_padding['entrustment_id'])
+                        current_price = self.get_current_price()
+                        if current_price > float(last_buy_ord_padding['price']) * float(1.006):
+                            self.trader.cancel_entrust(str(last_buy_ord_padding['entrustment_id']))
+                        else:
+                            print(f"last_buy_ord_padding quote current_price={current_price} order price = {last_buy_ord_padding['price']}")
 
                 except Exception as e :
                     print(f" exception {e}")
