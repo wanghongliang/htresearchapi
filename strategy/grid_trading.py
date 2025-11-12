@@ -462,16 +462,22 @@ class GridTrading:
                     print( f"last_sell_ord = {last_sell_ord}")
 
 
+                if last_buy_ord_padding is not None:
+                    print(f"last_buy_ord_padding={last_buy_ord_padding}")
 
                 try:
                     #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
 
+
+
+
+                    current_price = self.get_current_price()
                     #如果没有买单信息，需要下一个买单
                     if self.has_orders is not None and len(self.has_orders) == 0:
                         self.place_buy_order(0.9995)
 
                     elif last_buy_ord is not None:
-                        current_price = self.get_current_price()
+
                         buy_price  = float(last_buy_ord['price'])*0.998
                         buy_time = last_buy_ord['filled_time']
                         print(f"current_price={current_price} 可以下单的价格：price = {buy_price} buy_time={buy_time} last_buy_ord_padding={last_buy_ord_padding}")
@@ -484,7 +490,7 @@ class GridTrading:
                     if last_buy_ord_padding is not None and (
                             datetime.now() - last_buy_ord_padding['placed_time']).total_seconds() > 60:
                         #self.trader.cancel_entrust(last_buy_ord_padding['entrustment_id'])
-                        current_price = self.get_current_price()
+
                         if current_price > float(last_buy_ord_padding['price']) * float(1.006):
                             self.trader.cancel_entrust(str(last_buy_ord_padding['entrustment_id']))
                         else:
