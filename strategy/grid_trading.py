@@ -491,7 +491,7 @@ class GridTrading:
                             datetime.now() - last_buy_ord_padding['placed_time']).total_seconds() > 60:
                         #self.trader.cancel_entrust(last_buy_ord_padding['entrustment_id'])
 
-                        if current_price > float(last_buy_ord_padding['price']) * float(1.006):
+                        if current_price > float(last_buy_ord_padding['price']) * float(1.002):
                             self.trader.cancel_entrust(str(last_buy_ord_padding['entrustment_id']))
                         else:
                             print(f"last_buy_ord_padding quote current_price={current_price} order price = {last_buy_ord_padding['price']}")
