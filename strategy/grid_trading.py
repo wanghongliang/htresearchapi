@@ -286,12 +286,18 @@ class GridTrading:
         if order['status'] != 'pending':
             return order['status']
 
+
+        found_order_flag = False
+
         for record in entrusts:
             print(record)
             if '委托编号' in record.keys():
                 entrusts_id = record['委托编号']
                 filled_num = record['成交数量']
                 if entrusts_id ==  (order['entrustment_id']):
+
+                    found_order_flag = True
+
                     if filled_num>0:
                         self.db.update_order_status(
                             order_id=order['current_order_id'],
@@ -324,7 +330,13 @@ class GridTrading:
                                     self.trader.cancel_entrust( str(entrusts_id))
                                 else:
                                     print(f" quote current_price={current_price} order price = {order['price']}")
-
+        #如果没有查询到委托记录，取消订单
+        if len(str(order['entrustment_id']))>1 and len(entrusts)>0 and found_order_flag == False:
+            self.db.update_order_status(
+                order_id=order['current_order_id'],
+                status='cancel'
+            )
+            return 'cancel'
 
         return 'pending'
 
