@@ -348,7 +348,7 @@ class GridTrading:
         current_time = now.time()
         
         # 上午交易时间: 9:29 - 11:30
-        morning_start = datetime.strptime('09:29', '%H:%M').time()
+        morning_start = datetime.strptime('09:27', '%H:%M').time()
         morning_end = datetime.strptime('11:30', '%H:%M').time()
         
         # 下午交易时间: 12:59 - 15:00
