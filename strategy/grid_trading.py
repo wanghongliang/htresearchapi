@@ -73,42 +73,42 @@ class GridTrading:
                 return []
             
             print(f"{datetime.now()} 加载到 {len(pending_orders)} 个未完成的订单:")
-            
-            # 按时间排序，处理最新的订单
-            latest_order = None
-            for order in pending_orders:
-                print(f"  订单ID: {order['id']}, 类型: {order['order_type']}, 价格: {order['price']:.4f}, 状态: {order['status']}, 确认: {order['confirm']}")
-                
-                # 找到最新的pending订单作为当前活跃订单
-                if order['status'] == 'pending':
-                    if latest_order is None or order['placed_time'] > latest_order['placed_time']:
-                        latest_order = order
-            
-            # 恢复最新的pending订单状态
-            if latest_order:
-                self.current_order_id = latest_order['id']
-                self.last_order_type = latest_order['order_type']
-                self.order_price = float(latest_order['price'])
-                self.last_order_time = latest_order['placed_time']
-                
-                print(f"恢复活跃订单: ID={self.current_order_id}, 类型={self.last_order_type}, 价格={self.order_price:.4f}")
-                
-                # 如果是卖单，说明有持仓
-                if self.last_order_type == 'sell':
-                    self.holding_position = True
-                    # 找到关联的买单ID
-                    if latest_order['related_order_id']:
-                        self.last_buy_order_id = latest_order['related_order_id']
-                else:
-                    self.holding_position = False
-            
-            # 处理已成交但未确认的订单
-            filled_unconfirmed = [order for order in pending_orders if order['status'] == 'filled' and order['confirm'] == 0]
-            if filled_unconfirmed:
-                print(f"\n发现 {len(filled_unconfirmed)} 个已成交但未确认的订单:")
-                for order in filled_unconfirmed:
-                    print(f"  订单ID: {order['id']}, 类型: {order['order_type']}, 价格: {order['price']:.4f}")
-                    # 可以选择自动确认或提示用户
+            #
+            # # 按时间排序，处理最新的订单
+            # latest_order = None
+            # for order in pending_orders:
+            #     print(f"  订单ID: {order['id']}, 类型: {order['order_type']}, 价格: {order['price']:.4f}, 状态: {order['status']}, 确认: {order['confirm']}")
+            #
+            #     # 找到最新的pending订单作为当前活跃订单
+            #     if order['status'] == 'pending':
+            #         if latest_order is None or order['placed_time'] > latest_order['placed_time']:
+            #             latest_order = order
+            #
+            # # 恢复最新的pending订单状态
+            # if latest_order:
+            #     self.current_order_id = latest_order['id']
+            #     self.last_order_type = latest_order['order_type']
+            #     self.order_price = float(latest_order['price'])
+            #     self.last_order_time = latest_order['placed_time']
+            #
+            #     print(f"恢复活跃订单: ID={self.current_order_id}, 类型={self.last_order_type}, 价格={self.order_price:.4f}")
+            #
+            #     # 如果是卖单，说明有持仓
+            #     if self.last_order_type == 'sell':
+            #         self.holding_position = True
+            #         # 找到关联的买单ID
+            #         if latest_order['related_order_id']:
+            #             self.last_buy_order_id = latest_order['related_order_id']
+            #     else:
+            #         self.holding_position = False
+            #
+            # # 处理已成交但未确认的订单
+            # filled_unconfirmed = [order for order in pending_orders if order['status'] == 'filled' and order['confirm'] == 0]
+            # if filled_unconfirmed:
+            #     print(f"\n发现 {len(filled_unconfirmed)} 个已成交但未确认的订单:")
+            #     for order in filled_unconfirmed:
+            #         print(f"  订单ID: {order['id']}, 类型: {order['order_type']}, 价格: {order['price']:.4f}")
+            #         # 可以选择自动确认或提示用户
                     # self.db.update_order_confirm(order['id'], 1)
             self.has_orders = pending_orders
 
@@ -138,7 +138,7 @@ class GridTrading:
 
         return quote['quote']['price']
 
-    def place_buy_order(self, offset_ratio = 1.0):
+    def place_buy_order(self, offset_ratio = 0.998):
         """下买单"""
         price = self.get_current_price()
         price = round( price*float(offset_ratio), 3)
@@ -345,7 +345,7 @@ class GridTrading:
         根据订单查找关联的订单
         '''
         for ord in self.has_orders:
-            print(f"get_sell_order_by_id order_id={order_id}")
+            print(f"get_sell_order_by_id order_id={order_id} ord.id={ord['related_order_id']}")
             if ord['related_order_id'] == order_id :
                 print(ord)
                 return ord
@@ -486,7 +486,7 @@ class GridTrading:
                     current_price = self.get_current_price()
                     #如果没有买单信息，需要下一个买单
                     if self.has_orders is not None and len(self.has_orders) == 0:
-                        self.place_buy_order(0.9995)
+                        self.place_buy_order(0.999)
 
                     elif last_buy_ord is not None:
 
