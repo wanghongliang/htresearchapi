@@ -138,7 +138,7 @@ class GridTrading:
 
         return quote['quote']['price']
 
-    def place_buy_order(self, offset_ratio = 0.998):
+    def place_buy_order(self, offset_ratio = 0.999):
         """下买单"""
         price = self.get_current_price()
         price = round( price*float(offset_ratio), 3)
