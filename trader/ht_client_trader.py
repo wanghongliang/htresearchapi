@@ -567,7 +567,7 @@ class HTClientTrader(IClientTrader):
             _en_no = entrust.get(self.CONFIG["CANCEL_ENTRUST_ENTRUST_FIELD"])
             print(f"entrust_no={_en_no}")
 
-            if _en_no == int(entrust_no) and len(_en_no)>2:
+            if _en_no == int(entrust_no) and len(str(_en_no))>2:
                 self._cancel_entrust_by_double_click(i+1)
                 return self._handle_pop_dialogs()
         return {"message": "委托单状态错误不能撤单, 该委托单可能已经成交或者已撤"}

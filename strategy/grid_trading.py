@@ -294,7 +294,7 @@ class GridTrading:
             if '委托编号' in record.keys():
                 entrusts_id = record['委托编号']
                 filled_num = record['成交数量']
-                if entrusts_id ==  (order['entrustment_id']) and len(entrusts_id)>2 :
+                if entrusts_id ==  (order['entrustment_id']) and len(str(entrusts_id))>2 :
 
                     found_order_flag = True
 
