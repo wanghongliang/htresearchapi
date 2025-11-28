@@ -294,7 +294,7 @@ class GridTrading:
             if '委托编号' in record.keys():
                 entrusts_id = record['委托编号']
                 filled_num = record['成交数量']
-                if entrusts_id ==  (order['entrustment_id']):
+                if entrusts_id ==  (order['entrustment_id']) and len(entrusts_id)>2 :
 
                     found_order_flag = True
 
@@ -326,8 +326,9 @@ class GridTrading:
                                         )
                                 return 'cancel'
                             else:
-                                if current_price > float(order['price'])*float(1.006):
+                                if current_price > float(order['price'])*float(1.006) and order['last_order_type']=='buy':
                                     self.trader.cancel_entrust( str(entrusts_id))
+                                    print(f" cancel_entrust: quote current_price={current_price} order price = {order['price']}")
                                 else:
                                     print(f" quote current_price={current_price} order price = {order['price']}")
         #如果没有查询到委托记录，取消订单
