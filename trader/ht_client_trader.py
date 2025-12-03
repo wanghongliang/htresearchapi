@@ -114,8 +114,8 @@ class HTClientTrader(IClientTrader):
         # 撤单相关
         "CANCEL_ENTRUST_ENTRUST_FIELD": "委托编号",
         "CANCEL_ENTRUST_GRID_LEFT_MARGIN": 50,
-        "CANCEL_ENTRUST_GRID_FIRST_ROW_HEIGHT": 30,
-        "CANCEL_ENTRUST_GRID_ROW_HEIGHT": 16,
+        "CANCEL_ENTRUST_GRID_FIRST_ROW_HEIGHT": 22,
+        "CANCEL_ENTRUST_GRID_ROW_HEIGHT": 22,
 
         # 新股申购
         "AUTO_IPO_SELECT_ALL_BUTTON_CONTROL_ID": 1098,
@@ -1127,6 +1127,8 @@ class HTClientTrader(IClientTrader):
                 self.CONFIG["CANCEL_ENTRUST_GRID_FIRST_ROW_HEIGHT"]
                 + self.CONFIG["CANCEL_ENTRUST_GRID_ROW_HEIGHT"] * row
         )
+
+        print(f"row={row} x={x} y={y}")
         self._app.top_window().child_window(
             control_id=self.CONFIG["COMMON_GRID_CONTROL_ID"],
             class_name="CVirtualGridCtrl",
@@ -1290,14 +1292,14 @@ if __name__ == "__main__":
         # print("当日委托:", today_entrusts)
         #
         #
-        message =  trader.buy('513630',1.561,300)
-        print( message['entrust_id'],message )
-        #
-        message =  trader.sell('513630',1.581,300)
-        print( message )
+        # message =  trader.buy('513630',1.561,300)
+        # print( message['entrust_id'],message )
+        # #
+        # message =  trader.sell('513630',1.581,300)
+        # print( message )
         # trader.cancel_entrust(str(339))
         # trader.cancel_entrust(str(339))
-        # trader.cancel_entrust(str(340))
+        trader.cancel_entrust(str(18468))
         # time.sleep(10)
     except Exception as e:
         print(f"操作出错: {str(e)}")
