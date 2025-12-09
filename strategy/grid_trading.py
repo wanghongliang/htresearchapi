@@ -138,7 +138,7 @@ class GridTrading:
 
         return quote['quote']['price']
 
-    def place_buy_order(self, offset_ratio = 0.999):
+    def place_buy_order(self, offset_ratio = 0.996):
         """下买单"""
         price = self.get_current_price()
         price = round( price*float(offset_ratio), 3)
@@ -481,9 +481,6 @@ class GridTrading:
                 try:
                     #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
 
-
-
-
                     current_price = self.get_current_price()
                     #如果没有买单信息，需要下一个买单
                     if self.has_orders is not None and len(self.has_orders) == 0:
@@ -491,7 +488,7 @@ class GridTrading:
 
                     elif last_buy_ord is not None:
 
-                        buy_price  = float(last_buy_ord['price'])*0.998
+                        buy_price  = float(last_buy_ord['price'])*0.995
                         buy_time = last_buy_ord['filled_time']
                         print(f"current_price={current_price} 可以下单的价格：price = {buy_price} buy_time={buy_time} last_buy_ord_padding={last_buy_ord_padding}")
 
