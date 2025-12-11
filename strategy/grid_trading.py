@@ -138,7 +138,7 @@ class GridTrading:
 
         return quote['quote']['price']
 
-    def place_buy_order(self, offset_ratio = 0.996):
+    def place_buy_order(self, offset_ratio = 0.999):
         """下买单"""
         price = self.get_current_price()
         price = round( price*float(offset_ratio), 3)
@@ -498,7 +498,7 @@ class GridTrading:
 
                     #买单没有成交，需要撤单
                     if last_buy_ord_padding is not None and (
-                            datetime.now() - last_buy_ord_padding['placed_time']).total_seconds() > 60:
+                            datetime.now() - last_buy_ord_padding['placed_time']).total_seconds() > 600:
                         #self.trader.cancel_entrust(last_buy_ord_padding['entrustment_id'])
 
                         if current_price > float(last_buy_ord_padding['price']) * float(1.002):
