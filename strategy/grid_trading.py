@@ -221,7 +221,7 @@ class GridTrading:
         
         return target_price
 
-    def place_sell_order_related(self, symbol,buy_price,last_buy_order_id):
+    def place_sell_order_related(self, symbol,buy_price,quantity,last_buy_order_id):
         """下卖单，基于买入价格设置目标利润"""
         target_price = round(buy_price * (1 + self.profit_target),3)
 
@@ -239,7 +239,7 @@ class GridTrading:
             symbol=symbol,
             order_type='sell',
             price=target_price,
-            quantity=self.quantity,
+            quantity=quantity,
             status='pending',
             placed_time=self.last_order_time,
             related_order_id=last_buy_order_id
@@ -447,7 +447,7 @@ class GridTrading:
                                 # 判断是否有卖单
                                 if self.get_sell_order_by_id(ord['id']) is None:
                                     # 买单成交，下卖单
-                                    self.place_sell_order_related(self.symbol,float(ord['price']), ord['id'])
+                                    self.place_sell_order_related(self.symbol,float(ord['price']), ord['quantity'],ord['id'])
 
                             if ord['status'] == 'filled':
                                 if last_sell_ord is not None:
@@ -488,7 +488,7 @@ class GridTrading:
 
                     elif last_buy_ord is not None:
 
-                        buy_price  = float(last_buy_ord['price'])*0.995
+                        buy_price  = float(last_buy_ord['price'])*0.998
                         buy_time = last_buy_ord['filled_time']
                         print(f"current_price={current_price} 可以下单的价格：price = {buy_price} buy_time={buy_time} last_buy_ord_padding={last_buy_ord_padding}")
 
@@ -549,7 +549,7 @@ def start_trading():
         service.analyze_trading_activity(symbol, count=30)
 
         # 初始化策略，初始价格设为100，运行300秒（5分钟）
-        grid_trader = GridTrading(trader, service, symbol, initial_price=100.0, quantity=5000)
+        grid_trader = GridTrading(trader, service, symbol, initial_price=100.0, quantity=1000)
         grid_trader.run(duration=30000000)
 
     except Exception as e:
