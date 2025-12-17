@@ -249,7 +249,7 @@ class GridTrading:
 
         entrustment_id = -1
         try:
-            entrustment_message = self.trader.sell(self.symbol,target_price,self.quantity)
+            entrustment_message = self.trader.sell(self.symbol,target_price,quantity)
             if 'entrust_id' in entrustment_message.keys():
                 entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
