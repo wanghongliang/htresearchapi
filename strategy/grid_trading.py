@@ -542,6 +542,7 @@ def start_trading():
             sys.exit(1)
 
         symbol = '513630'
+        symbol = '513060'
         ##symbol = '600000'
         # 创建市场数据服务
         service = MarketDataService()
