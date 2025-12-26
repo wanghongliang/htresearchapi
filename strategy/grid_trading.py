@@ -172,6 +172,10 @@ class GridTrading:
             if 'entrust_id' in entrustment_message.keys():
                 entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
+
+
+            if len(str(entrustment_id))<4 :
+                entrustment_id = self.get_last_entrusts_id()
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -213,6 +217,11 @@ class GridTrading:
             if 'entrust_id' in entrustment_message.keys():
                 entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
+
+            if len(str(entrustment_id))<4 :
+                entrustment_id = self.get_last_entrusts_id()
+
+
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -261,6 +270,10 @@ class GridTrading:
             if 'entrust_id' in entrustment_message.keys():
                 entrustment_id = entrustment_message['entrust_id']
             print(f"entrustment_message={entrustment_message}")
+
+            if len(str(entrustment_id))<4 :
+                entrustment_id = self.get_last_entrusts_id()
+
         except Exception as e:
             print(e)
             traceback.print_exc()
@@ -284,6 +297,13 @@ class GridTrading:
         print("当日委托:", today_entrusts)
         return  today_entrusts
 
+    def get_last_entrusts_id(self):
+
+        today_entrusts = self.get_today_entrusts()
+        # 获取today_entrusts中最新的订单
+        entrust_ord = max(today_entrusts, key=lambda x: x['委托编号'])
+
+        return entrust_ord['委托编号']
 
     def check_order_status_by_entrusts(self,symbol, order, entrusts):
         """检查订单状态，模拟订单是否成交"""
