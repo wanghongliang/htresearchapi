@@ -419,9 +419,9 @@ class GridTrading:
                             )
                     time.sleep(60)  # 等待1分钟后再检查
 
-
+                debug = False
                 # 检查是否在交易时间范围内
-                if not self.is_trading_time():
+                if debug and  not self.is_trading_time():
                     current_time = datetime.now().strftime('%H:%M:%S')
                     print(f"\n[{current_time}] 当前不在交易时间范围内，等待中...")
                     time.sleep(60)  # 等待1分钟后再检查
@@ -523,6 +523,24 @@ class GridTrading:
 
                 #重新加载订单数据
                 self.load_pending_orders()
+
+                #加一个逻辑,获取 self.has_orders 中最新的订单
+                last_ord = None
+                if self.has_orders:
+                    last_ord = max(self.has_orders, key=lambda x: x['placed_time'])
+
+                    if last_ord['entrustment_id'] is None or len(str(last_ord['entrustment_id']))<4:
+
+                        #获取today_entrusts中最新的订单
+                        entrust_ord = max(today_entrusts, key=lambda x: x['委托编号'])
+
+                        if entrust_ord['委托数量'] == last_ord['quantity'] and last_ord['symbol'] == entrust_ord['证券代码']:
+                            self.db.update_order_entrust_id( last_ord['id'], entrust_ord['委托编号'])
+                        else:
+                            self.db.update_order_status(
+                                order_id=last_ord['id'],
+                                status='cancel'
+                            )
 
                 # 每秒检查一次
                 time.sleep(1)
