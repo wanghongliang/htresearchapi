@@ -419,9 +419,9 @@ class GridTrading:
                             )
                     time.sleep(60)  # 等待1分钟后再检查
 
-                debug = False
+
                 # 检查是否在交易时间范围内
-                if debug and  not self.is_trading_time():
+                if   not self.is_trading_time():
                     current_time = datetime.now().strftime('%H:%M:%S')
                     print(f"\n[{current_time}] 当前不在交易时间范围内，等待中...")
                     time.sleep(60)  # 等待1分钟后再检查
