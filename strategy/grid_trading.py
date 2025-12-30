@@ -466,6 +466,15 @@ class GridTrading:
                         orders = self.getOrders(symbol)
 
                         for ord in orders:
+
+
+                            current_price = self.get_current_price(symbol)
+
+                            #这个订单的买入价格太高，暂时不处理
+                            if ord['price']>current_price*1.02:
+                                print(f" 忽略：ord.id={ord['id']} ord.entrustment_id={ord['entrustment_id']} ")
+                                continue
+
                             print( ord )
 
                             try:
@@ -512,7 +521,6 @@ class GridTrading:
                         try:
                             #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
 
-                            current_price = self.get_current_price(symbol)
                             #如果没有买单信息，需要下一个买单
                             if orders is not None and len(orders) == 0:
                                 self.place_buy_order(symbol, 0.999)
