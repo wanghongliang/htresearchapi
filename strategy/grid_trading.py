@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import sys
 import os
 from logging import exception
+from utils.time_based_cache import time_based_cache
 
 from trader.ht_client_trader import HTClientTrader,read_config
 
@@ -134,6 +135,7 @@ class GridTrading:
         if hasattr(self, 'db') and self.db:
             self.db.close()
 
+    @time_based_cache(expire_seconds=2)
     def get_current_price(self,symbol):
         """模拟获取当前价格，实际应用中应从交易所API获取"""
         # 模拟价格小幅波动，上下浮动不超过0.5%
