@@ -143,6 +143,10 @@ class GridTrading:
         self.current_price *= (1 + fluctuation)
 
         quote = self.quoteService.get_stock_quote(symbol)
+
+        if 'quote' not in quote.keys():
+            return None
+
         if symbol.startswith(('5')):
             return round(quote['quote']['price']/10,3)
 
@@ -470,16 +474,20 @@ class GridTrading:
                         for ord in orders:
 
 
-                            current_price = self.get_current_price(symbol)
 
-                            #这个订单的买入价格太高，暂时不处理
-                            if ord['price']>current_price*1.02:
-                                print(f" 忽略：ord.id={ord['id']} ord.entrustment_id={ord['entrustment_id']} ")
-                                continue
-
-                            print( ord )
 
                             try:
+
+                                current_price = self.get_current_price(symbol)
+
+                                # 这个订单的买入价格太高，暂时不处理
+                                if ord['price'] > current_price * 1.02:
+                                    print(f" 忽略：ord.id={ord['id']} ord.entrustment_id={ord['entrustment_id']} ")
+                                    continue
+
+                                print(ord)
+
+
                                 #根据订单记录，查询订单状态
                                 ord_status = self.check_order_status_by_entrusts(ord['symbol'],
                                     {'price':ord['price'],'entrustment_id': ord['entrustment_id'], 'last_order_type': ord['order_type'], 'current_order_id': ord['id'],
