@@ -803,7 +803,13 @@ class HTClientTrader(IClientTrader):
             #file_name_edit = save_dialog.child_window(control_id=999, control_type="Edit")
 
             fm = FileManager()
+            file_name = "table.xls"
+            save_path = os.path.join(os.path.expanduser("~"), "Documents", file_name)
+            if fm.file_exists(save_path):
+                fm.delete_file(save_path)
+
             # 3.3 拼接保存路径
+            file_name = "ht_table.xls"
             save_path = os.path.join(os.path.expanduser("~"), "Documents", file_name)
 
             if fm.file_exists(save_path):

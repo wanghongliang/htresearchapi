@@ -418,7 +418,19 @@ class GridTrading:
         
         # 检查是否在收盘后（15:00之后）
         return current_time > market_close_time
-    
+
+    def is_after_market_close2(self):
+        """检查当前时间是否在收盘后"""
+        now = datetime.now()
+        current_time = now.time()
+
+        # 股市收盘时间: 15:00
+        market_close_time = datetime.strptime('15:20', '%H:%M').time()
+
+        # 检查是否在收盘后（15:00之后）
+        return current_time > market_close_time
+
+
     def run(self, duration=None):
         """运行网格交易策略"""
         print("开始网格交易策略...")
@@ -445,6 +457,9 @@ class GridTrading:
                             )
                     time.sleep(60)  # 等待1分钟后再检查
 
+                    if self.is_after_market_close2():
+                        print("market close.")
+                        break
 
                 # 检查是否在交易时间范围内
                 if   not self.is_trading_time():
@@ -473,11 +488,7 @@ class GridTrading:
 
                         for ord in orders:
 
-
-
-
                             try:
-
                                 current_price = self.get_current_price(symbol)
 
                                 # 这个订单的买入价格太高，暂时不处理
