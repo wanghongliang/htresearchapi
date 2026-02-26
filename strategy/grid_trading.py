@@ -622,13 +622,15 @@ def start_trading():
         symbol = '513630'
         symbol = '513060'
         ##symbol = '600000' ,'513060'
+
+        symbols = ['513060']
         # 创建市场数据服务
         service = MarketDataService()
         # 分析交易活跃度
         service.analyze_trading_activity(symbol, count=30)
 
         # 初始化策略，初始价格设为100，运行300秒（5分钟）
-        grid_trader = GridTrading(trader, service, ['513630'], initial_price=100.0, quantity=2000)
+        grid_trader = GridTrading(trader, service, symbols, initial_price=100.0, quantity=2000)
         grid_trader.run(duration=30000000)
 
     except Exception as e:
