@@ -74,43 +74,7 @@ class GridTrading:
                 return []
             
             print(f"{datetime.now()} 加载到 {len(pending_orders)} 个未完成的订单:")
-            #
-            # # 按时间排序，处理最新的订单
-            # latest_order = None
-            # for order in pending_orders:
-            #     print(f"  订单ID: {order['id']}, 类型: {order['order_type']}, 价格: {order['price']:.4f}, 状态: {order['status']}, 确认: {order['confirm']}")
-            #
-            #     # 找到最新的pending订单作为当前活跃订单
-            #     if order['status'] == 'pending':
-            #         if latest_order is None or order['placed_time'] > latest_order['placed_time']:
-            #             latest_order = order
-            #
-            # # 恢复最新的pending订单状态
-            # if latest_order:
-            #     self.current_order_id = latest_order['id']
-            #     self.last_order_type = latest_order['order_type']
-            #     self.order_price = float(latest_order['price'])
-            #     self.last_order_time = latest_order['placed_time']
-            #
-            #     print(f"恢复活跃订单: ID={self.current_order_id}, 类型={self.last_order_type}, 价格={self.order_price:.4f}")
-            #
-            #     # 如果是卖单，说明有持仓
-            #     if self.last_order_type == 'sell':
-            #         self.holding_position = True
-            #         # 找到关联的买单ID
-            #         if latest_order['related_order_id']:
-            #             self.last_buy_order_id = latest_order['related_order_id']
-            #     else:
-            #         self.holding_position = False
-            #
-            # # 处理已成交但未确认的订单
-            # filled_unconfirmed = [order for order in pending_orders if order['status'] == 'filled' and order['confirm'] == 0]
-            # if filled_unconfirmed:
-            #     print(f"\n发现 {len(filled_unconfirmed)} 个已成交但未确认的订单:")
-            #     for order in filled_unconfirmed:
-            #         print(f"  订单ID: {order['id']}, 类型: {order['order_type']}, 价格: {order['price']:.4f}")
-            #         # 可以选择自动确认或提示用户
-                    # self.db.update_order_confirm(order['id'], 1)
+
             self.has_orders = pending_orders
 
             print( self.has_orders )
@@ -485,6 +449,7 @@ class GridTrading:
 
 
                         orders = self.getOrders(symbol)
+                        print(f"orders length={len(orders)}")
 
                         for ord in orders:
 
