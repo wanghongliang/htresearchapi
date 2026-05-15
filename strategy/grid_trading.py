@@ -450,19 +450,22 @@ class GridTrading:
 
                         orders = self.getOrders(symbol)
                         print(f"orders length={len(orders)}")
+                        current_price = self.get_current_price(symbol)
 
+                        padding_orders = []
                         for ord in orders:
 
                             try:
-                                current_price = self.get_current_price(symbol)
+
 
                                 # 这个订单的买入价格太高，暂时不处理
                                 if ord['price'] > current_price * 1.02:
                                     print(f" 忽略：ord.id={ord['id']} ord.entrustment_id={ord['entrustment_id']} ")
                                     continue
 
+                                padding_orders.append(ord)
                                 print(ord)
-
+                                current_price = self.get_current_price(symbol)
 
                                 #根据订单记录，查询订单状态
                                 ord_status = self.check_order_status_by_entrusts(ord['symbol'],
@@ -504,11 +507,12 @@ class GridTrading:
 
                         if last_buy_ord_padding is not None:
                             print(f"last_buy_ord_padding={last_buy_ord_padding}")
+
                         try:
                             #print("total_seconds={}".format((datetime.now() -last_sell_ord['filled_time'] ).total_seconds()))
 
                             #如果没有买单信息，需要下一个买单
-                            if orders is not None and len(orders) == 0:
+                            if len(padding_orders) == 0:
                                 self.place_buy_order(symbol, 0.999)
 
                             elif last_buy_ord is not None:
